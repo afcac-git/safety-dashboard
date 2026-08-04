@@ -24,12 +24,10 @@ export async function middleware(request: NextRequest) {
 
   // Public paths — no auth required
   const isPublic =
-    pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    /\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf)$/.test(pathname);
+    pathname.startsWith("/favicon");
 
   if (!isPublic) {
     if (!(await isAuthenticated(request))) {

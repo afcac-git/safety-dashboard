@@ -12,7 +12,7 @@ export default async function AdminPage() {
   ]);
 
   if (!session) redirect("/login");
-  if (session.role === "observer") redirect("/abuja");
+  if (session.role === "observer") redirect("/");
 
   const currentUser = await findUser(session.username);
   const displayName = currentUser?.displayName ?? session.username;

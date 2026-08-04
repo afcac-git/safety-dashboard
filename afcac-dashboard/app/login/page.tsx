@@ -90,7 +90,7 @@ function LoginForm() {
         </form>
 
         <div style={{ marginTop: 20, textAlign: "center", fontSize: 11, color: "var(--ink3)" }}>
-          <Link href="/abuja" style={{ color: "var(--forest2)", textDecoration: "none" }}>
+          <Link href="/" style={{ color: "var(--forest2)", textDecoration: "none" }}>
             {t("backToDashboard")}
           </Link>
         </div>

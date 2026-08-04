@@ -366,7 +366,7 @@ export default function AdminClient({
                 {Math.round((answeredTargets / targets.length) * 100)}%
               </span>
             </div>
-            <Link href="/abuja" className="hbtn" style={{ fontSize: 11, width: "auto", padding: "0 12px", gap: 6, textDecoration: "none" }}>
+            <Link href="/" className="hbtn" style={{ fontSize: 11, width: "auto", padding: "0 12px", gap: 6, textDecoration: "none" }}>
               👁 {t("dashboard")}
             </Link>
             <button
@@ -1269,7 +1269,7 @@ export default function AdminClient({
           <strong>{answeredTargets}</strong> / {targets.length} {t("adminTargetsPlural")}
           &nbsp;·&nbsp; {t("tabTargets")} : <strong>{t((NAV_ITEM_DEFS.find((n) => n.id === tab)?.labelKey ?? "navTargetsLabel") as Parameters<typeof t>[0])}</strong>
         </div>
-        <Link href="/abuja" className="btn btn-secondary-form">
+        <Link href="/" className="btn btn-secondary-form">
           {t("btnCancel")}
         </Link>
         <button

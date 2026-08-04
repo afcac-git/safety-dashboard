@@ -14,12 +14,6 @@ export const translations = {
     logOut: "⏻ Log Out",
     disconnect: "Disconnect",
 
-    // Landing page (dashboard selector)
-    landingHeading: "AFCAC Safety Targets Dashboards",
-    landingSubheading: "Select a monitoring dashboard to continue",
-    card2Title: "MONITORING THE IMPLEMENTATION OF THE PROPOSED REVISED WINDHOEK DECLARATION AND TARGETS",
-    cardEnter: "Enter Dashboard →",
-
     // Section labels
     execSummary: "Executive Summary",
     statusOverview: "Status Overview",
@@ -366,12 +360,6 @@ export const translations = {
     logOut: "⏻ Déconnexion",
     disconnect: "Déconnecter",
 
-    // Landing page (dashboard selector)
-    landingHeading: "Tableaux de Bord des Objectifs de Sécurité de l'AFCAC",
-    landingSubheading: "Sélectionnez un tableau de bord de suivi pour continuer",
-    card2Title: "MONITORING THE IMPLEMENTATION OF THE PROPOSED REVISED WINDHOEK DECLARATION AND TARGETS",
-    cardEnter: "Accéder au tableau de bord →",
-
     // Section labels
     execSummary: "Résumé Exécutif",
     statusOverview: "Vue d'Ensemble des Statuts",
@@ -717,12 +705,6 @@ export const translations = {
     logOut: "⏻ Sair",
     disconnect: "Desconectar",
 
-    // Landing page (dashboard selector)
-    landingHeading: "Painéis de Metas de Segurança da AFCAC",
-    landingSubheading: "Selecione um painel de monitorização para continuar",
-    card2Title: "MONITORING THE IMPLEMENTATION OF THE PROPOSED REVISED WINDHOEK DECLARATION AND TARGETS",
-    cardEnter: "Aceder ao painel →",
-
     // Section labels
     execSummary: "Resumo Executivo",
     statusOverview: "Visão Geral do Status",
@@ -1067,12 +1049,6 @@ export const translations = {
     admin: "الاستبيان",
     logOut: "تسجيل الخروج",
     disconnect: "قطع الاتصال",
-
-    // Landing page (dashboard selector)
-    landingHeading: "لوحات معلومات أهداف السلامة الخاصة بأفكاك",
-    landingSubheading: "اختر لوحة متابعة للمتابعة",
-    card2Title: "MONITORING THE IMPLEMENTATION OF THE PROPOSED REVISED WINDHOEK DECLARATION AND TARGETS",
-    cardEnter: "الدخول إلى اللوحة ←",
 
     // Section labels
     execSummary: "الملخص التنفيذي",
