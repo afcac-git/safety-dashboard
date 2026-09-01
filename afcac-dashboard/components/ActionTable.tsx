@@ -52,7 +52,7 @@ export default function ActionTable({
   const cols: { label: string; key: keyof ActionRow }[] = [
     { label: t("colCountry"),   key: "country" },
     { label: t("colTargetId"),  key: "action" },
-    { label: t("colSection"),   key: "section" },
+    { label: t("colSection"),   key: "status" },
     { label: t("colStatus"),    key: "status" },
   ];
 
@@ -78,13 +78,21 @@ export default function ActionTable({
 
   async function handleExcel() {
     const headers = [t("colCountry"), t("colTargetId"), t("colSection"), t("colStatus")];
-    const rows = sorted.map(r => [r.country, r.action, r.section, statusLabel[r.status] ?? r.status]);
+    const rows = sorted.map(r => {
+      const st = normStatus(r.status);
+      const label = statusLabel[st] ?? st;
+      return [r.country, r.action, label, label];
+    });
     await exportExcel("AFCAC_Action_Plan", t("actionPlanDetail"), headers, rows);
   }
 
   async function handlePdf() {
     const headers = [t("colCountry"), t("colTargetId"), t("colSection"), t("colStatus")];
-    const rows = sorted.map(r => [r.country, r.action, r.section, statusLabel[r.status] ?? r.status]);
+    const rows = sorted.map(r => {
+      const st = normStatus(r.status);
+      const label = statusLabel[st] ?? st;
+      return [r.country, r.action, label, label];
+    });
     await exportPdf("AFCAC_Action_Plan", t("actionPlanDetail"), headers, rows, `${sorted.length} ${t("countries")}`);
   }
 
@@ -135,7 +143,7 @@ export default function ActionTable({
                     </td>
                     <td style={{ fontWeight: 600 }}>{row.country}</td>
                     <td style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}>{row.action}</td>
-                    <td style={{ color: "var(--ink2)" }}>{row.section}</td>
+                    <td style={{ color: "var(--ink2)" }}>{sLabel}</td>
                     <td><span className={`badge ${s.cls}`}>{sLabel}</span></td>
                   </tr>
 
