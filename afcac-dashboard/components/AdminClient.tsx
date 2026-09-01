@@ -703,7 +703,7 @@ export default function AdminClient({
                     return (
                       <div key={tgt.id} className="q-card" style={isLast ? { borderRadius: "0 0 8px 8px" } : {}}>
                         <div className="q-head">
-                          <span className="q-num">T{gi + 1}.{qi + 1}</span>
+                          <span className="q-num">{tgt.id}</span>
                           <span className="q-title">{tgt.title}</span>
                           {tgt.question && (
                             <button
