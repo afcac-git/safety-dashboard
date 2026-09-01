@@ -303,7 +303,7 @@ async function recomputeAggregateTargets(all: Record<string, TargetRow[]>): Prom
   const base = await getTargets();
   const VALID = [0, 25, 50, 75, 100] as const;
   const statusMap: Record<number, TargetRow["status"]> = {
-    0: "notstarted", 25: "delayed", 50: "inprogress", 75: "inprogress", 100: "completed",
+    0: "notstarted", 25: "inprogress", 50: "inprogress", 75: "inprogress", 100: "completed",
   };
 
   const aggregate = base.map((t) => {
@@ -323,16 +323,14 @@ async function syncActionRow(country: string, targets: TargetRow[]): Promise<voi
   if (total === 0) return;
 
   const completed  = targets.filter((t) => t.pct === 100).length;
-  const inprogress = targets.filter((t) => t.pct === 50 || t.pct === 75).length;
-  const delayed    = targets.filter((t) => t.pct === 25).length;
+  const inprogress = targets.filter((t) => t.pct === 25 || t.pct === 50 || t.pct === 75).length;
   const notstarted = targets.filter((t) => t.pct === 0).length;
 
   let status: ActionStatus;
-  if (completed === total)                                     status = "completed";
-  else if (notstarted === total)                               status = "notstarted";
-  else if (inprogress >= delayed && inprogress >= notstarted) status = "inprogress";
-  else if (delayed > notstarted)                              status = "delayed";
-  else                                                        status = "notstarted";
+  if (completed === total)            status = "completed";
+  else if (notstarted === total)      status = "notstarted";
+  else if (inprogress >= notstarted)  status = "inprogress";
+  else                               status = "notstarted";
 
   const actions = await getActions();
   const idx = actions.findIndex((a) => a.country === country);
@@ -348,11 +346,11 @@ async function syncCountryStats(country: string, targets: TargetRow[]): Promise<
   const total = targets.length;
   if (total === 0) return;
 
-  const c100   = targets.filter((t) => t.pct === 100).length;
-  const c7550  = targets.filter((t) => t.pct === 50 || t.pct === 75).length;
-  const c25    = targets.filter((t) => t.pct === 25).length;
-  const c0     = total - c100 - c7550 - c25;
-  const [completed, inprogress, delayed, notstarted] = pctLargestRemainder([c100, c7550, c25, c0], total);
+  const c100    = targets.filter((t) => t.pct === 100).length;
+  const c255075 = targets.filter((t) => t.pct === 25 || t.pct === 50 || t.pct === 75).length;
+  const c0      = total - c100 - c255075;
+  const [completed, inprogress, notstarted] = pctLargestRemainder([c100, c255075, c0], total);
+  const delayed = 0;
 
   const countries = await getCountries();
   const idx = countries.findIndex((c) => c.country === country);

@@ -299,7 +299,7 @@ export default function AdminClient({
   /* ── Target updater ── */
   function updateTarget(id: string, pct: number) {
     const statusMap: Record<number, TargetRow["status"]> = {
-      0: "notstarted", 25: "delayed", 50: "inprogress", 75: "inprogress", 100: "completed",
+      0: "notstarted", 25: "inprogress", 50: "inprogress", 75: "inprogress", 100: "completed",
     };
     setTargets((p) =>
       p.map((t) => (t.id === id ? { ...t, pct, status: statusMap[pct] ?? "inprogress" } : t))
