@@ -12,6 +12,10 @@ const SC: Record<string, { cls: string }> = {
   notstarted: { cls: "s-notstarted" },
 };
 
+// The questionnaire scale has no "Delayed" level — treat any legacy "delayed"
+// status as "In Progress" so it never surfaces in the Status column.
+const normStatus = (s: string): string => (s === "delayed" ? "inprogress" : s);
+
 const PCT_COLOR: Record<number, string> = {
   0: "#95a5a6", 25: "#e74c3c", 50: "#e07b39", 75: "#f0a500", 100: "#2d9d5e",
 };
@@ -105,8 +109,9 @@ export default function ActionTable({
           </thead>
           <tbody>
             {sorted.map((row, i) => {
-              const s = SC[row.status] ?? SC.notstarted;
-              const sLabel = statusLabel[row.status] ?? row.status;
+              const rowStatus = normStatus(row.status);
+              const s = SC[rowStatus] ?? SC.notstarted;
+              const sLabel = statusLabel[rowStatus] ?? rowStatus;
               const isOpen = expanded.has(i);
               return (
                 <>
@@ -156,8 +161,9 @@ export default function ActionTable({
                               <tbody>
                                 {countryTargets[row.country].map((tRow, ti) => {
                                   const pctColor = PCT_COLOR[tRow.pct] ?? PCT_COLOR[0];
-                                  const ts = SC[tRow.status] ?? SC.notstarted;
-                                  const tsLabel = statusLabel[tRow.status] ?? tRow.status;
+                                  const tRowStatus = normStatus(tRow.status);
+                                  const ts = SC[tRowStatus] ?? SC.notstarted;
+                                  const tsLabel = statusLabel[tRowStatus] ?? tRowStatus;
                                   return (
                                     <tr key={ti} style={{ borderTop: "1px solid var(--border2, #e8eaed)" }}>
                                       <td style={{ padding: "5px 8px", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, color: "var(--navy)" }}>{tRow.id}</td>

@@ -166,7 +166,9 @@ export async function getActions(): Promise<ActionRow[]> {
   const actZeroV1Done = await kvGet<boolean>("actZeroV1");
   let dirty = false;
   const fixed = rows.map(r => {
-    let row: ActionRow = (r.status as string) === "onhold" ? { ...r, status: "notstarted" as const } : r;
+    let row: ActionRow =
+      (r.status as string) === "onhold"  ? { ...r, status: "notstarted" as const } :
+      (r.status as string) === "delayed" ? { ...r, status: "inprogress" as const } : r;
     const country = renameCountry(row.country);
     if (country !== row.country) row = { ...row, country };
     if (!actZeroV1Done && COUNTRIES_ZERO_V1.has(row.country)) {
@@ -191,8 +193,10 @@ function fixDeadlines<T extends { deadline?: string }>(rows: T[]): T[] {
 
 export async function getTargets(): Promise<TargetRow[]> {
   const rows = await dbGetOrSeed<TargetRow[]>(K.targets, "targets.json");
-  const fixed = fixDeadlines(rows);
-  if (fixed.some((r, i) => r.deadline !== rows[i].deadline)) await kvSet(K.targets, fixed);
+  const fixed = fixDeadlines(rows).map((r) =>
+    (r.status as string) === "delayed" ? { ...r, status: "inprogress" as const } : r
+  );
+  if (fixed.some((r, i) => r.deadline !== rows[i].deadline || r.status !== rows[i].status)) await kvSet(K.targets, fixed);
   return fixed;
 }
 
@@ -265,9 +269,10 @@ export async function getAllCountryTargets(): Promise<Record<string, TargetRow[]
     if (!ctZeroV1Done && COUNTRIES_ZERO_V1.has(newKey)) { dirty = true; continue; }
     const original = raw[country];
     all[newKey] = fixDeadlines(original.map((t) =>
-      (t.status as string) === "onhold" ? { ...t, status: "notstarted" as const } : t
+      (t.status as string) === "onhold"  ? { ...t, status: "notstarted" as const } :
+      (t.status as string) === "delayed" ? { ...t, status: "inprogress" as const } : t
     ));
-    if (all[newKey].some((r, i) => r.deadline !== original[i]?.deadline)) dirty = true;
+    if (all[newKey].some((r, i) => r.deadline !== original[i]?.deadline || r.status !== original[i]?.status)) dirty = true;
   }
   if (!ctZeroV1Done) { await kvSet("ctZeroV1", true); dirty = true; }
   if (dirty) await kvSet(K.countryTargets, all);
