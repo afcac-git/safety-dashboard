@@ -35,14 +35,14 @@ export default function BreakdownTable({ countries, isAdmin, canExport }: { coun
   }
 
   async function handleExcel() {
-    const headers = [t("colCountry"), t("colTotalActions"), t("colPctCompleted"), t("colPctInProgress"), t("delayed"), t("notStarted"), "Entity"];
-    const rows = sorted.map(r => [r.country, r.actions, r.completed, r.inprogress, r.delayed, r.notstarted, r.entity]);
+    const headers = [t("colCountry"), t("colTotalActions"), t("colPctCompleted"), t("colPctInProgress"), "Implementation Status", t("notStarted"), "Entity"];
+    const rows = sorted.map(r => [r.country, r.actions, r.completed, r.inprogress, r.completed + r.inprogress, r.notstarted, r.entity]);
     await exportExcel("AFCAC_Country_Breakdown", t("actionPlanBreakdown"), headers, rows);
   }
 
   async function handlePdf() {
-    const headers = [t("colCountry"), t("totalActions"), t("completed"), t("inProgress"), t("delayed"), t("notStarted"), "Entity"];
-    const rows = sorted.map(r => [r.country, r.actions, `${r.completed}%`, `${r.inprogress}%`, `${r.delayed}%`, `${r.notstarted}%`, r.entity]);
+    const headers = [t("colCountry"), t("totalActions"), t("completed"), t("inProgress"), "Implementation Status", t("notStarted"), "Entity"];
+    const rows = sorted.map(r => [r.country, r.actions, `${r.completed}%`, `${r.inprogress}%`, `${r.completed + r.inprogress}%`, `${r.notstarted}%`, r.entity]);
     await exportPdf("AFCAC_Country_Breakdown", t("actionPlanBreakdown"), headers, rows, `${sorted.length} African States`);
   }
 
