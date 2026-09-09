@@ -60,7 +60,7 @@ export default function StatusDonut({ kpis, isAdmin, targets }: { kpis: KpiData;
     <div className="card">
       <div className="card-head">
         <span className="card-head-title">{t("statusDistTitle")}</span>
-        <span className="card-head-badge">{totalLabel} {levels ? "targets" : t("actions")}</span>
+        <span className="card-head-badge">{totalLabel} {t("actions")}</span>
         {isAdmin && <ExportButtons onExcel={handleExcel} onPdf={handlePdf} />}
       </div>
       <div className="card-body">
