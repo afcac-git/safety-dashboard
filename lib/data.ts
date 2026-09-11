@@ -201,10 +201,32 @@ export async function getTargets(): Promise<TargetRow[]> {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const [kpis, actions, countries, targets] = await Promise.all([
-    getKpis(), getActions(), getCountries(), getTargets(),
+  const [kpis, actions, countries, targets, countryTargets] = await Promise.all([
+    getKpis(), getActions(), getCountries(), getTargets(), getAllCountryTargets(),
   ]);
-  return { kpis, actions, countries, targets };
+
+  // Reconcile: a country's Status / breakdown must always match what was actually
+  // submitted. If the write-path sync (saveCountryTargets -> syncActionRow /
+  // syncCountryStats) ever failed to persist after a real submission, the stored
+  // actions/countries rows can go stale (e.g. frozen on "Not Started") even though
+  // country_targets already has the focal point's real answers. Recompute from the
+  // submitted targets whenever a country has them, on every read, so it self-heals.
+  const reconciledActions = actions.map((a) => {
+    const ct = countryTargets[a.country];
+    if (!ct || ct.length === 0) return a;
+    const status = computeActionStatus(ct);
+    return status !== a.status ? { ...a, status } : a;
+  });
+  const reconciledCountries = countries.map((c) => {
+    const ct = countryTargets[c.country];
+    if (!ct || ct.length === 0) return c;
+    const pcts = computeCountryPcts(ct);
+    return (pcts.completed !== c.completed || pcts.inprogress !== c.inprogress || pcts.notstarted !== c.notstarted)
+      ? { ...c, ...pcts }
+      : c;
+  });
+
+  return { kpis, actions: reconciledActions, countries: reconciledCountries, targets };
 }
 
 /* ── Writers ─────────────────────────────────────── */
@@ -323,19 +345,39 @@ async function recomputeAggregateTargets(all: Record<string, TargetRow[]>): Prom
   await saveTargets(aggregate);
 }
 
-async function syncActionRow(country: string, targets: TargetRow[]): Promise<void> {
+// Pure: derive an action's status from its country's actual submitted targets.
+// Shared by the write path (syncActionRow) and the read-path reconciliation in
+// getDashboardData, so a country's Status can never drift from what was submitted.
+function computeActionStatus(targets: TargetRow[]): ActionStatus {
   const total = targets.length;
-  if (total === 0) return;
+  if (total === 0) return "notstarted";
 
   const completed  = targets.filter((t) => t.pct === 100).length;
   const inprogress = targets.filter((t) => t.pct === 25 || t.pct === 50 || t.pct === 75).length;
   const notstarted = targets.filter((t) => t.pct === 0).length;
 
-  let status: ActionStatus;
-  if (completed === total)            status = "completed";
-  else if (notstarted === total)      status = "notstarted";
-  else if (inprogress >= notstarted)  status = "inprogress";
-  else                               status = "notstarted";
+  if (completed === total)           return "completed";
+  if (notstarted === total)          return "notstarted";
+  if (inprogress >= notstarted)      return "inprogress";
+  return "notstarted";
+}
+
+// Pure: derive a country's completed/inprogress/notstarted % breakdown from its
+// actual submitted targets. Shared with the read-path reconciliation, same reason.
+function computeCountryPcts(targets: TargetRow[]): Pick<CountryRow, "completed" | "inprogress" | "delayed" | "notstarted"> {
+  const total = targets.length;
+  if (total === 0) return { completed: 0, inprogress: 0, delayed: 0, notstarted: 0 };
+
+  const c100    = targets.filter((t) => t.pct === 100).length;
+  const c255075 = targets.filter((t) => t.pct === 25 || t.pct === 50 || t.pct === 75).length;
+  const c0      = total - c100 - c255075;
+  const [completed, inprogress, notstarted] = pctLargestRemainder([c100, c255075, c0], total);
+  return { completed, inprogress, delayed: 0, notstarted };
+}
+
+async function syncActionRow(country: string, targets: TargetRow[]): Promise<void> {
+  if (targets.length === 0) return;
+  const status = computeActionStatus(targets);
 
   const actions = await getActions();
   const idx = actions.findIndex((a) => a.country === country);
@@ -350,19 +392,14 @@ async function syncActionRow(country: string, targets: TargetRow[]): Promise<voi
 async function syncCountryStats(country: string, targets: TargetRow[]): Promise<void> {
   const total = targets.length;
   if (total === 0) return;
-
-  const c100    = targets.filter((t) => t.pct === 100).length;
-  const c255075 = targets.filter((t) => t.pct === 25 || t.pct === 50 || t.pct === 75).length;
-  const c0      = total - c100 - c255075;
-  const [completed, inprogress, notstarted] = pctLargestRemainder([c100, c255075, c0], total);
-  const delayed = 0;
+  const pcts = computeCountryPcts(targets);
 
   const countries = await getCountries();
   const idx = countries.findIndex((c) => c.country === country);
   if (idx >= 0) {
-    countries[idx] = { ...countries[idx], actions: total, completed, inprogress, delayed, notstarted };
+    countries[idx] = { ...countries[idx], actions: total, ...pcts };
   } else {
-    countries.push({ country, region: COUNTRY_REGIONS[country] ?? "Africa", actions: total, completed, inprogress, delayed, notstarted, budget: 0, entity: "CAA" });
+    countries.push({ country, region: COUNTRY_REGIONS[country] ?? "Africa", actions: total, ...pcts, budget: 0, entity: "CAA" });
   }
   await saveCountries(countries);
 }
