@@ -68,7 +68,7 @@ export default function StatusBar({ kpis, isAdmin, canExport, isCountryProfile, 
   ];
 
   const totalCount = levels ? (levels[0]?.total ?? kpis.totalActions) : kpis.totalActions;
-  const totalLabel = levels ? t("targetsPlural") : t("actions");
+  const totalLabel = t("actions");
 
   async function handleExcel() {
     const headers = [t("colStatus"), "(%)", totalLabel];
