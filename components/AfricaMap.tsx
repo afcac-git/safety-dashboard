@@ -52,7 +52,7 @@ export default function AfricaMap({ countries, isAdmin, allCountryTargets }: {
   isAdmin?: boolean;
   allCountryTargets?: Record<string, TargetRow[]>;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const countryMap = Object.fromEntries(countries.map((c) => [c.country, c]));
 
@@ -157,11 +157,11 @@ export default function AfricaMap({ countries, isAdmin, allCountryTargets }: {
   }
 
   async function handlePdf() {
-    const headers = [t("colCountry"), t("totalActions"), t("completed"), t("inProgress"), t("delayed"), t("notStarted"), "Entity"];
+    const headers = [t("colCountry"), t("totalActions"), t("completed"), t("inProgress"), t("delayed"), t("notStarted"), t("colResponsible")];
     const rows = [...countries]
       .sort((a, b) => a.country.localeCompare(b.country))
       .map(c => [c.country, c.actions, `${c.completed}%`, `${c.inprogress}%`, `${c.delayed}%`, `${c.notstarted}%`, c.entity]);
-    await exportPdf("AFCAC_Africa_Map_Status", t("africaMap"), headers, rows, `${countries.length} African States`);
+    await exportPdf("AFCAC_Africa_Map_Status", t("africaMap"), headers, rows, t("nAfricanStates").replace("{n}", String(countries.length)), locale);
   }
 
   return (

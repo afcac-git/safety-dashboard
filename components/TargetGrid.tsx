@@ -37,7 +37,7 @@ function groupNum(id: string): number {
 const TOTAL_AFRICAN_STATES = 54;
 
 export default function TargetGrid({ targets, isAdmin, canExport, allCountryTargets }: { targets: TargetRow[]; isAdmin?: boolean; canExport?: boolean; allCountryTargets?: Record<string, TargetRow[]> }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   function statusInfo(pct: number): { label: string; cls: string } {
     if (pct >= 100) return { label: t("completed"),   cls: "s-completed" };
@@ -86,7 +86,7 @@ export default function TargetGrid({ targets, isAdmin, canExport, allCountryTarg
   async function handlePdf() {
     const headers = [t("colHash"), t("colTarget"), t("colScore"), t("colStatus"), t("colDeadline"), "Sub"];
     const tableRows = rows.map(r => [r.num, r.name, `${r.avgPct}%`, statusInfo(r.avgPct).label, r.deadlines, r.count]);
-    await exportPdf("AFCAC_Safety_Targets", t("targetAchievement"), headers, tableRows, `${t("continentalScore")}: ${globalAvg}%`);
+    await exportPdf("AFCAC_Safety_Targets", t("targetAchievement"), headers, tableRows, `${t("continentalScore")}: ${globalAvg}%`, locale);
   }
 
   return (

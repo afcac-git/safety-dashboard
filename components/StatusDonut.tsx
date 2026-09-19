@@ -45,15 +45,15 @@ export default function StatusDonut({ kpis, isAdmin, targets }: { kpis: KpiData;
   async function handleExcel() {
     const headers = [t("colStatus"), "(%)", t("totalActions")];
     const rows = data.map(d => [d.name, d.value, levels ? d.count : Math.round(d.value * kpis.totalActions / 100)]);
-    rows.push(["TOTAL", 100, totalLabel]);
+    rows.push([t("totalRowLabel"), 100, totalLabel]);
     await exportExcel("AFCAC_Status_Distribution", t("statusDistTitle"), headers, rows);
   }
 
   async function handlePdf() {
     const headers = [t("colStatus"), "(%)", t("totalActions")];
     const rows = data.map(d => [d.name, `${d.value}%`, levels ? d.count : Math.round(d.value * kpis.totalActions / 100)]);
-    rows.push(["TOTAL", "100%", totalLabel]);
-    await exportPdf("AFCAC_Status_Distribution", t("statusDistTitle"), headers, rows, `Total: ${totalLabel} ${t("actions")}`);
+    rows.push([t("totalRowLabel"), "100%", totalLabel]);
+    await exportPdf("AFCAC_Status_Distribution", t("statusDistTitle"), headers, rows, `${t("totalRowLabel")}: ${totalLabel} ${t("actions")}`, locale);
   }
 
   return (

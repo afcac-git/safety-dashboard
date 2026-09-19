@@ -68,20 +68,20 @@ export default function StatusBar({ kpis, isAdmin, canExport, isCountryProfile, 
   ];
 
   const totalCount = levels ? (levels[0]?.total ?? kpis.totalActions) : kpis.totalActions;
-  const totalLabel = levels ? "targets" : t("actions");
+  const totalLabel = levels ? t("targetsPlural") : t("actions");
 
   async function handleExcel() {
     const headers = [t("colStatus"), "(%)", totalLabel];
     const rows = segs.map(s => [s.label, s.pct, levels ? s.count : Math.round(s.pct * kpis.totalActions / 100)]);
-    rows.push(["TOTAL", 100, totalCount] as (string | number)[]);
+    rows.push([t("totalRowLabel"), 100, totalCount] as (string | number)[]);
     await exportExcel("AFCAC_Continental_Status", t(titleKey), headers, rows);
   }
 
   async function handlePdf() {
     const headers = [t("colStatus"), "(%)", totalLabel];
     const rows = segs.map(s => [s.label, `${s.pct}%`, levels ? s.count : Math.round(s.pct * kpis.totalActions / 100)]);
-    rows.push(["TOTAL", "100%", totalCount] as (string | number)[]);
-    await exportPdf("AFCAC_Continental_Status", t(titleKey), headers, rows, `Total: ${totalCount} ${totalLabel}`);
+    rows.push([t("totalRowLabel"), "100%", totalCount] as (string | number)[]);
+    await exportPdf("AFCAC_Continental_Status", t(titleKey), headers, rows, `${t("totalRowLabel")}: ${totalCount} ${totalLabel}`, locale);
   }
 
   return (

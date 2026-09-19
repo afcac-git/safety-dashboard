@@ -33,7 +33,7 @@ export default function ActionTable({
   isAdmin?: boolean;
   canExport?: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const [sorted, setSorted] = useState<ActionRow[]>(
     [...actions].sort((a, b) => a.country.localeCompare(b.country))
@@ -93,7 +93,7 @@ export default function ActionTable({
       const label = statusLabel[st] ?? st;
       return [r.country, r.action, label, label];
     });
-    await exportPdf("AFCAC_Action_Plan", t("actionPlanDetail"), headers, rows, `${sorted.length} ${t("countries")}`);
+    await exportPdf("AFCAC_Action_Plan", t("actionPlanDetail"), headers, rows, `${sorted.length} ${t("countries")}`, locale);
   }
 
   return (

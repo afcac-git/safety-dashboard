@@ -8,7 +8,7 @@ import { useLanguage } from "./LanguageProvider";
 type SortKey = keyof CountryRow;
 
 export default function BreakdownTable({ countries, isAdmin, canExport }: { countries: CountryRow[]; isAdmin?: boolean; canExport?: boolean }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [sorted, setSorted] = useState<CountryRow[]>(
     [...countries].sort((a, b) => a.country.localeCompare(b.country))
   );
@@ -35,15 +35,15 @@ export default function BreakdownTable({ countries, isAdmin, canExport }: { coun
   }
 
   async function handleExcel() {
-    const headers = [t("colCountry"), t("colTotalActions"), t("colPctCompleted"), t("colPctInProgress"), "Implementation Status", t("notStarted"), "Entity"];
+    const headers = [t("colCountry"), t("colTotalActions"), t("colPctCompleted"), t("colPctInProgress"), t("implementationStatus"), t("notStarted"), t("colResponsible")];
     const rows = sorted.map(r => [r.country, r.actions, r.completed, r.inprogress, r.completed + r.inprogress, r.notstarted, r.entity]);
     await exportExcel("AFCAC_Country_Breakdown", t("actionPlanBreakdown"), headers, rows);
   }
 
   async function handlePdf() {
-    const headers = [t("colCountry"), t("totalActions"), t("completed"), t("inProgress"), "Implementation Status", t("notStarted"), "Entity"];
+    const headers = [t("colCountry"), t("totalActions"), t("completed"), t("inProgress"), t("implementationStatus"), t("notStarted"), t("colResponsible")];
     const rows = sorted.map(r => [r.country, r.actions, `${r.completed}%`, `${r.inprogress}%`, `${r.completed + r.inprogress}%`, `${r.notstarted}%`, r.entity]);
-    await exportPdf("AFCAC_Country_Breakdown", t("actionPlanBreakdown"), headers, rows, `${sorted.length} African States`);
+    await exportPdf("AFCAC_Country_Breakdown", t("actionPlanBreakdown"), headers, rows, t("nAfricanStates").replace("{n}", String(sorted.length)), locale);
   }
 
   return (

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { KpiData, CountryRow, TargetRow, ActionRow } from "@/lib/types";
 import { useLanguage } from "./LanguageProvider";
+import { ARABIC_FONT, registerArabicFont, shapeArabicForPdf } from "@/lib/pdfArabic";
 
 interface Props {
   kpis: KpiData;
@@ -12,7 +13,8 @@ interface Props {
 }
 
 export default function CountryReportCard({ kpis, countries, targets, actions = [], userCountry }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isArabic = locale === "ar";
   const [loadingXls, setLoadingXls] = useState(false);
   const [loadingPdf, setLoadingPdf] = useState(false);
 
@@ -21,8 +23,15 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
   const slug = userCountry ? userCountry.replace(/ /g, "_") : "Full";
   const reportName = `AFCAC_${slug}_Safety_Report_${today}`;
   const reportTitle = userCountry
-    ? `${userCountry} — AFCAC Safety Targets Report`
-    : "AFCAC — Full Safety Targets Report";
+    ? `${userCountry} — ${t("reportMainTitle")}`
+    : t("reportMainTitle");
+
+  const statusLabel: Record<string, string> = {
+    completed: t("completed"),
+    inprogress: t("inProgress"),
+    delayed: t("delayed"),
+    notstarted: t("notStarted"),
+  };
 
   async function handleExcel() {
     setLoadingXls(true);
@@ -32,38 +41,38 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
 
       // Sheet 1: KPI Summary
       const wsKpi = XLSX.utils.aoa_to_sheet([
-        ["AFCAC — Revised Abuja Safety Targets"],
+        [t("reportMainTitle")],
         [t("reportCountryLabel"), userCountry ?? t("reportAllCountries")],
         [t("lastUpdated"), kpis.lastUpdated],
         [],
-        ["Metric", "Value"],
-        ["% Completed",   `${kpis.pctCompleted}%`],
-        ["% In Progress", `${kpis.pctInProgress}%`],
-        ["% Delayed",     `${kpis.pctDelayed}%`],
-        ["% Not Started", `${kpis.pctNotStarted}%`],
-        ["Total Countries",    kpis.totalCountries],
-        ["Total Actions",      kpis.totalActions],
-        ["Total Budget (USD)", kpis.totalBudget],
-        ["Report Period",      kpis.reportPeriod],
+        [t("colMetric"), t("colValue")],
+        [t("pctCompleted"),   `${kpis.pctCompleted}%`],
+        [t("pctInProgress"), `${kpis.pctInProgress}%`],
+        [t("pctDelayed"),     `${kpis.pctDelayed}%`],
+        [t("pctNotStarted"), `${kpis.pctNotStarted}%`],
+        [t("totalCountries"),    kpis.totalCountries],
+        [t("totalActions"),      kpis.totalActions],
+        [t("totalBudget"), kpis.totalBudget],
+        [t("reportPeriodLabel"),      kpis.reportPeriod],
       ]);
       wsKpi["!cols"] = [{ wch: 30 }, { wch: 30 }];
-      XLSX.utils.book_append_sheet(wb, wsKpi, "KPI Summary");
+      XLSX.utils.book_append_sheet(wb, wsKpi, t("sheetKpiSummary"));
 
       // Sheet 2: Safety Targets
-      const tHeaders = ["ID", "Group", "Title", "Score (%)", "Status", "Deadline"];
-      const tRows = targets.map(tgt => [tgt.id, tgt.group, tgt.title, tgt.pct, tgt.status, tgt.deadline]);
+      const tHeaders = [t("colId"), t("colGroup"), t("colTitle"), `${t("colScore")} (%)`, t("colStatus"), t("colDeadline")];
+      const tRows = targets.map(tgt => [tgt.id, tgt.group, tgt.title, tgt.pct, statusLabel[tgt.status] ?? tgt.status, tgt.deadline]);
       const wsTargets = XLSX.utils.aoa_to_sheet([tHeaders, ...tRows]);
       wsTargets["!cols"] = tHeaders.map((h, ci) => ({
         wch: Math.max(h.length, ...tRows.map(r => String(r[ci] ?? "").length)) + 2,
       }));
-      XLSX.utils.book_append_sheet(wb, wsTargets, "Safety Targets");
+      XLSX.utils.book_append_sheet(wb, wsTargets, t("sheetSafetyTargets"));
 
       // Sheet 3: Country Breakdown (admin / multi-country only)
       if (countries.length > 1) {
         const cHeaders = [
-          "Country", "Region", "Authority/Entity",
-          "Targets Total", "Completed %", "In Progress %", "Delayed %", "Not Started %",
-          "Budget (USD)",
+          t("colCountry"), t("colRegion"), t("colAuthorityEntity"),
+          t("colTargetsTotal"), t("colPctCompleted"), t("colPctInProgress"), t("colPctDelayed"), t("colPctNotStarted"),
+          t("colBudgetUsd"),
         ];
         const cRows = countries.map(c => [
           c.country, c.region, c.entity ?? "",
@@ -74,24 +83,24 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
         wsCountries["!cols"] = cHeaders.map((h, ci) => ({
           wch: Math.max(h.length, ...cRows.map(r => String(r[ci] ?? "").length)) + 2,
         }));
-        XLSX.utils.book_append_sheet(wb, wsCountries, "Country Breakdown");
+        XLSX.utils.book_append_sheet(wb, wsCountries, t("sheetCountryBreakdown"));
       }
 
       // Sheet 4: Action Plans (one row per country)
       if (actions.length > 0) {
         const aHeaders = [
-          "Country", "Action / Target", "Section", "Status",
-          "Start Year", "End Year", "Duration (weeks)", "Budget (USD)",
+          t("colCountry"), t("colActionTarget"), t("colSection"), t("colStatus"),
+          t("colStartYear"), t("colEndYear"), t("colDurationWeeks"), t("colBudgetUsd"),
         ];
         const aRows = actions.map(a => [
-          a.country, a.action, a.section, a.status,
+          a.country, a.action, a.section, statusLabel[a.status] ?? a.status,
           a.start, a.end, a.duration, a.budget ?? 0,
         ]);
         const wsActions = XLSX.utils.aoa_to_sheet([aHeaders, ...aRows]);
         wsActions["!cols"] = aHeaders.map((h, ci) => ({
           wch: Math.max(h.length, ...aRows.map(r => String(r[ci] ?? "").length)) + 2,
         }));
-        XLSX.utils.book_append_sheet(wb, wsActions, "Action Plans");
+        XLSX.utils.book_append_sheet(wb, wsActions, t("sheetActionPlans"));
       }
 
       XLSX.writeFile(wb, `${reportName}.xlsx`);
@@ -105,6 +114,10 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
     try {
       const { jsPDF } = await import("jspdf");
       const autoTable = (await import("jspdf-autotable")).default;
+
+      const font = isArabic ? ARABIC_FONT : "helvetica";
+      const shape = isArabic ? shapeArabicForPdf : (s: string) => s;
+      const halign = isArabic ? "right" as const : "left" as const;
 
       const C = {
         forest:   [1,   61,  49]  as [number,number,number],
@@ -136,20 +149,31 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
         doc.setFillColor(...C.forest2);
         doc.rect(pageW * 0.6, 0, pageW * 0.4, 24, "F");
         doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
+        doc.setFont(font, "bold");
         doc.setFontSize(12);
-        doc.text("AFCAC — Revised Abuja Safety Targets", 14, 10);
+        if (isArabic) {
+          doc.text(shape(t("reportMainTitle")), pageW - 14, 10, { align: "right" });
+        } else {
+          doc.text(t("reportMainTitle"), 14, 10);
+        }
         doc.setFontSize(8.5);
-        doc.setFont("helvetica", "normal");
+        doc.setFont(font, "normal");
         doc.setTextColor(...C.textMint);
-        doc.text(subtitle, 14, 18);
-        doc.setTextColor(255, 255, 255);
-        doc.text(dateStr, pageW - 14, 18, { align: "right" });
+        if (isArabic) {
+          doc.text(shape(subtitle), pageW - 14, 18, { align: "right" });
+          doc.setTextColor(255, 255, 255);
+          doc.text(dateStr, 14, 18, { align: "left" });
+        } else {
+          doc.text(subtitle, 14, 18);
+          doc.setTextColor(255, 255, 255);
+          doc.text(dateStr, pageW - 14, 18, { align: "right" });
+        }
       }
 
       // Build PDF as a multi-page portrait doc; landscape pages added as new docs then merged via pages
       const doc = makeDoc(false);
       const pageW = doc.internal.pageSize.getWidth();
+      if (isArabic) await registerArabicFont(doc);
 
       // ── Page 1: KPI Summary ──
       addPageHeader(doc, reportTitle);
@@ -158,26 +182,26 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
         doc.setFillColor(...C.complete);
         doc.roundedRect(14, 28, pageW - 28, 9, 2, 2, "F");
         doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
+        doc.setFont(font, "bold");
         doc.setFontSize(8.5);
-        doc.text(`Country: ${userCountry}`, pageW / 2, 33.5, { align: "center" });
+        doc.text(shape(t("reportCountryBadge").replace("{country}", userCountry)), pageW / 2, 33.5, { align: "center" });
       }
 
       autoTable(doc, {
-        head: [["Indicator", "Value"]],
+        head: [[t("colMetric"), t("colValue")].map(shape)],
         body: [
-          ["Completed",          `${kpis.pctCompleted}%`],
-          ["In Progress",        `${kpis.pctInProgress}%`],
-          ["Delayed",            `${kpis.pctDelayed}%`],
-          ["Not Started",        `${kpis.pctNotStarted}%`],
-          ["Total Countries",    String(kpis.totalCountries)],
-          ["Total Actions",      String(kpis.totalActions)],
-          ["Total Budget (USD)", kpis.totalBudget.toLocaleString()],
-          ["Report Period",      kpis.reportPeriod],
-          ["Last Updated",       kpis.lastUpdated],
-        ],
+          [t("completed"),          `${kpis.pctCompleted}%`],
+          [t("inProgress"),        `${kpis.pctInProgress}%`],
+          [t("delayed"),            `${kpis.pctDelayed}%`],
+          [t("notStarted"),        `${kpis.pctNotStarted}%`],
+          [t("totalCountries"),    String(kpis.totalCountries)],
+          [t("totalActions"),      String(kpis.totalActions)],
+          [t("totalBudget"), kpis.totalBudget.toLocaleString()],
+          [t("reportPeriodLabel"),      kpis.reportPeriod],
+          [t("lastUpdated"),       kpis.lastUpdated],
+        ].map(row => row.map(shape)),
         startY: userCountry ? 42 : 30,
-        styles: { fontSize: 9, cellPadding: 3 },
+        styles: { fontSize: 9, cellPadding: 3, font, halign },
         headStyles: { fillColor: C.forest, textColor: [255, 255, 255], fontStyle: "bold" },
         alternateRowStyles: { fillColor: C.rowAlt },
         margin: { left: 14, right: 14 },
@@ -194,12 +218,12 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
 
       // ── Page 2: Safety Targets ──
       doc.addPage();
-      addPageHeader(doc, "Safety Targets — Progress by Sub-target");
+      addPageHeader(doc, t("reportTargetsSubtitle"));
       autoTable(doc, {
-        head: [["ID", "Group", "Title", "Score", "Status", "Deadline"]],
-        body: targets.map(tgt => [tgt.id, tgt.group, tgt.title, `${tgt.pct}%`, tgt.status, tgt.deadline]),
+        head: [[t("colId"), t("colGroup"), t("colTitle"), t("colScore"), t("colStatus"), t("colDeadline")].map(shape)],
+        body: targets.map(tgt => [tgt.id, tgt.group, tgt.title, `${tgt.pct}%`, statusLabel[tgt.status] ?? tgt.status, tgt.deadline].map(shape)),
         startY: 30,
-        styles: { fontSize: 7.5, cellPadding: 2.5 },
+        styles: { fontSize: 7.5, cellPadding: 2.5, font, halign },
         headStyles: { fillColor: C.forest, textColor: [255, 255, 255], fontStyle: "bold" },
         alternateRowStyles: { fillColor: C.rowAlt },
         margin: { left: 14, right: 14 },
@@ -212,7 +236,7 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
         didParseCell: (data) => {
           if (data.section !== "body") return;
           if (data.column.index === 3) {
-            const pct = parseInt(String(data.cell.raw));
+            const pct = targets[data.row.index]?.pct ?? 0;
             if (pct >= 100)     data.cell.styles.textColor = C.complete;
             else if (pct >= 50) data.cell.styles.textColor = C.progress;
             else if (pct >= 25) data.cell.styles.textColor = C.delayed;
@@ -220,7 +244,7 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
             data.cell.styles.fontStyle = "bold";
           }
           if (data.column.index === 4) {
-            data.cell.styles.textColor = statusColor(String(data.cell.raw));
+            data.cell.styles.textColor = statusColor(targets[data.row.index]?.status ?? "");
             data.cell.styles.fontStyle = "bold";
           }
         },
@@ -229,16 +253,16 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
       // ── Page 3: Country Breakdown (admin only) ──
       if (countries.length > 1) {
         doc.addPage("a4", "landscape");
-        addPageHeader(doc, "Country Breakdown — All African States");
+        addPageHeader(doc, t("reportCountryBreakdownSubtitle"));
         autoTable(doc, {
-          head: [["Country", "Region", "Authority", "Targets", "Completed%", "In Progress%", "Delayed%", "Not Started%", "Budget (USD)"]],
+          head: [[t("colCountry"), t("colRegion"), t("colAuthorityEntity"), t("colTargets"), t("colPctCompleted"), t("colPctInProgress"), t("colPctDelayed"), t("colPctNotStarted"), t("colBudgetUsd")].map(shape)],
           body: countries.map(c => [
             c.country, c.region, c.entity ?? "",
             c.actions, `${c.completed}%`, `${c.inprogress}%`, `${c.delayed}%`, `${c.notstarted}%`,
             (c.budget ?? 0).toLocaleString(),
-          ]),
+          ].map((v) => shape(String(v)))),
           startY: 30,
-          styles: { fontSize: 7, cellPadding: 2 },
+          styles: { fontSize: 7, cellPadding: 2, font, halign },
           headStyles: { fillColor: C.forest, textColor: [255, 255, 255], fontStyle: "bold" },
           alternateRowStyles: { fillColor: C.rowAlt },
           margin: { left: 10, right: 10 },
@@ -269,15 +293,15 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
       // ── Page 4: Action Plans ──
       if (actions.length > 0) {
         doc.addPage("a4", "landscape");
-        addPageHeader(doc, "Action Plans — Per-Country Implementation Status");
+        addPageHeader(doc, t("reportActionPlansSubtitle"));
         autoTable(doc, {
-          head: [["Country", "Action/Target", "Section", "Status", "Start", "End", "Duration (wks)", "Budget (USD)"]],
+          head: [[t("colCountry"), t("colActionTarget"), t("colSection"), t("colStatus"), t("colStart"), t("colEnd"), t("colDurationWks"), t("colBudgetUsd")].map(shape)],
           body: actions.map(a => [
-            a.country, a.action, a.section, a.status,
+            a.country, a.action, a.section, statusLabel[a.status] ?? a.status,
             a.start, a.end, a.duration, (a.budget ?? 0).toLocaleString(),
-          ]),
+          ].map((v) => shape(String(v)))),
           startY: 30,
-          styles: { fontSize: 7, cellPadding: 2 },
+          styles: { fontSize: 7, cellPadding: 2, font, halign },
           headStyles: { fillColor: C.forest, textColor: [255, 255, 255], fontStyle: "bold" },
           alternateRowStyles: { fillColor: C.rowAlt },
           margin: { left: 10, right: 10 },
@@ -293,7 +317,7 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
           },
           didParseCell: (data) => {
             if (data.section !== "body" || data.column.index !== 3) return;
-            data.cell.styles.textColor = statusColor(String(data.cell.raw));
+            data.cell.styles.textColor = statusColor(actions[data.row.index]?.status ?? "");
             data.cell.styles.fontStyle = "bold";
           },
         });
@@ -372,7 +396,10 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
           {t("lastUpdated")}: <strong>{kpis.lastUpdated}</strong>
           {" · "}
           <span style={{ color: "var(--ink3)" }}>
-            {countries.length} countries · {targets.length} targets · {actions.length} action plans
+            {t("reportFooterSummary")
+              .replace("{c}", String(countries.length))
+              .replace("{t}", String(targets.length))
+              .replace("{a}", String(actions.length))}
           </span>
         </div>
       </div>
