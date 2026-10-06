@@ -352,14 +352,17 @@ function computeActionStatus(targets: TargetRow[]): ActionStatus {
   const total = targets.length;
   if (total === 0) return "notstarted";
 
-  const completed  = targets.filter((t) => t.pct === 100).length;
-  const inprogress = targets.filter((t) => t.pct === 25 || t.pct === 50 || t.pct === 75).length;
+  // "In Progress" means *any* work has been recorded — it must not require a
+  // majority of targets to be answered. A focal point who filled in a handful
+  // of targets out of 39 has still made progress; only "all untouched" is
+  // Not Started and only "all at 100%" is Completed.
   const notstarted = targets.filter((t) => t.pct === 0).length;
+  if (notstarted === total) return "notstarted";
 
-  if (completed === total)           return "completed";
-  if (notstarted === total)          return "notstarted";
-  if (inprogress >= notstarted)      return "inprogress";
-  return "notstarted";
+  const completed = targets.filter((t) => t.pct === 100).length;
+  if (completed === total) return "completed";
+
+  return "inprogress";
 }
 
 // Pure: derive a country's completed/inprogress/notstarted % breakdown from its
