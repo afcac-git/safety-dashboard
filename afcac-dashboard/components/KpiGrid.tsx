@@ -42,11 +42,6 @@ export default function KpiGrid({ kpis, experts, locale = "en", lastCountryUpdat
         trend="" trendClass="trend-flat" delay=".05s"
       />
       <KpiCard
-        colorClass="k-blue" icon="📋" iconBg="#e8f0f8"
-        value={String(kpis.totalActions)} label={t(locale, "totalActions")}
-        trend="" trendClass="trend-flat" delay=".1s"
-      />
-      <KpiCard
         colorClass="k-green" icon="✅" iconBg="#d4f0e0"
         value={`${kpis.pctCompleted}%`} valueColor="#2d9d5e"
         label={t(locale, "pctCompleted")}
@@ -58,18 +53,12 @@ export default function KpiGrid({ kpis, experts, locale = "en", lastCountryUpdat
         label={t(locale, "pctInProgress")}
         trend="" trendClass="trend-flat" delay=".2s"
       />
-      {isCountryProfile ? (
+      {isCountryProfile && (
         <KpiCard
           colorClass="k-red" icon="⏸" iconBg="#fdecea"
           value={`${kpis.pctNotStarted}%`} valueColor="#95a5a6"
           label={t(locale, "pctNotStarted")}
           trend={`▼ ${kpis.pctNotStartedTrend}`} trendClass="trend-down" delay=".25s"
-        />
-      ) : (
-        <KpiCard
-          colorClass="k-teal" icon="⏱" iconBg="#e8f2f8"
-          value={String(kpis.avgDurationWeeks)} label={t(locale, "avgDuration")}
-          trend={t(locale, "monthsAvg")} trendClass="trend-flat" delay=".25s"
         />
       )}
       {isCountryProfile ? (
