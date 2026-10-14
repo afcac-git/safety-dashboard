@@ -95,24 +95,33 @@ const COUNTRIES_ZERO_V1 = new Set([
   "Seychelles", "Somalia", "Sudan", "Tunisia",
 ]);
 
-// Recompute global KPI percentages from countries that have submitted data (actions > 0)
-async function recomputeKpisFromCountries(countries: CountryRow[]): Promise<void> {
+// Pure: derive org-wide KPI percentages by averaging each active (actions > 0)
+// country's completed/inprogress/delayed/notstarted %. Shared by the one-time
+// write-path migration below and the read-path reconciliation in
+// getDashboardData, so the Executive Summary cards can never go stale either.
+function computeGlobalPcts(countries: CountryRow[]): Pick<KpiData, "pctCompleted" | "pctInProgress" | "pctDelayed" | "pctNotStarted"> | null {
   const active = countries.filter(c => c.actions > 0);
-  if (active.length === 0) return;
+  if (active.length === 0) return null;
   const n = active.length;
   const avg = (field: keyof Pick<CountryRow, "completed" | "inprogress" | "delayed" | "notstarted">) =>
     Math.round(active.reduce((s, c) => s + c[field], 0) / n);
-  const totalBudget = active.reduce((s, c) => s + (c.budget ?? 0), 0);
-  const current = await kvGet<KpiData>(K.kpis);
-  if (!current) return;
-  await kvSet(K.kpis, {
-    ...current,
+  return {
     pctCompleted:  avg("completed"),
     pctInProgress: avg("inprogress"),
     pctDelayed:    avg("delayed"),
     pctNotStarted: avg("notstarted"),
-    totalBudget,
-  });
+  };
+}
+
+// Recompute global KPI percentages from countries that have submitted data (actions > 0)
+async function recomputeKpisFromCountries(countries: CountryRow[]): Promise<void> {
+  const pcts = computeGlobalPcts(countries);
+  if (!pcts) return;
+  const active = countries.filter(c => c.actions > 0);
+  const totalBudget = active.reduce((s, c) => s + (c.budget ?? 0), 0);
+  const current = await kvGet<KpiData>(K.kpis);
+  if (!current) return;
+  await kvSet(K.kpis, { ...current, ...pcts, totalBudget });
 }
 
 // Largest-remainder method: distributes integer percentages that always sum to 100.
@@ -226,7 +235,14 @@ export async function getDashboardData(): Promise<DashboardData> {
       : c;
   });
 
-  return { kpis, actions: reconciledActions, countries: reconciledCountries, targets };
+  // The Executive Summary's % Completed / % In Progress cards are an org-wide
+  // average across countries — they were only ever computed once (a one-time
+  // migration) and then left frozen in storage. Recompute from the now-current
+  // reconciledCountries on every read so they track real submissions.
+  const globalPcts = computeGlobalPcts(reconciledCountries);
+  const reconciledKpis = globalPcts ? { ...kpis, ...globalPcts } : kpis;
+
+  return { kpis: reconciledKpis, actions: reconciledActions, countries: reconciledCountries, targets };
 }
 
 /* ── Writers ─────────────────────────────────────── */
