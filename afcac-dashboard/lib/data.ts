@@ -96,9 +96,9 @@ const COUNTRIES_ZERO_V1 = new Set([
 ]);
 
 // Pure: derive org-wide KPI percentages by averaging each active (actions > 0)
-// country's completed/inprogress/delayed/notstarted %. Shared by the one-time
-// write-path migration below and the read-path reconciliation in
-// getDashboardData, so the Executive Summary cards can never go stale either.
+// country's completed/inprogress/delayed/notstarted %. Used only by the
+// one-time write-path migration below — the Executive Summary cards
+// themselves are driven by computeGlobalPctsFromActions (see getDashboardData).
 function computeGlobalPcts(countries: CountryRow[]): Pick<KpiData, "pctCompleted" | "pctInProgress" | "pctDelayed" | "pctNotStarted"> | null {
   const active = countries.filter(c => c.actions > 0);
   if (active.length === 0) return null;
@@ -110,6 +110,25 @@ function computeGlobalPcts(countries: CountryRow[]): Pick<KpiData, "pctCompleted
     pctInProgress: avg("inprogress"),
     pctDelayed:    avg("delayed"),
     pctNotStarted: avg("notstarted"),
+  };
+}
+
+// Pure: the Executive Summary's org-wide % Completed / % In Progress / %
+// Not Started are a share of *countries*, not an average of per-country
+// depth of completion. A country counts as "In Progress" the moment a
+// single target has been touched (the same rule computeActionStatus uses),
+// so a handful of early submissions moves this card instead of being
+// diluted by every country's hundreds of still-untouched targets.
+function computeGlobalPctsFromActions(actions: ActionRow[]): Pick<KpiData, "pctCompleted" | "pctInProgress" | "pctNotStarted"> | null {
+  const total = actions.length;
+  if (total === 0) return null;
+  const completed  = actions.filter((a) => a.status === "completed").length;
+  const inprogress = actions.filter((a) => a.status === "inprogress").length;
+  const notstarted = actions.filter((a) => a.status === "notstarted").length;
+  return {
+    pctCompleted:  Math.round((completed  / total) * 100),
+    pctInProgress: Math.round((inprogress / total) * 100),
+    pctNotStarted: Math.round((notstarted / total) * 100),
   };
 }
 
@@ -235,11 +254,11 @@ export async function getDashboardData(): Promise<DashboardData> {
       : c;
   });
 
-  // The Executive Summary's % Completed / % In Progress cards are an org-wide
-  // average across countries — they were only ever computed once (a one-time
-  // migration) and then left frozen in storage. Recompute from the now-current
-  // reconciledCountries on every read so they track real submissions.
-  const globalPcts = computeGlobalPcts(reconciledCountries);
+  // The Executive Summary's % Completed / % In Progress cards are the share of
+  // countries in each Action Plan status — not an average of how deep into the
+  // 39 targets each country got. Recomputed from reconciledActions on every
+  // read so they track real submissions (see computeGlobalPctsFromActions).
+  const globalPcts = computeGlobalPctsFromActions(reconciledActions);
   const reconciledKpis = globalPcts ? { ...kpis, ...globalPcts } : kpis;
 
   return { kpis: reconciledKpis, actions: reconciledActions, countries: reconciledCountries, targets };
