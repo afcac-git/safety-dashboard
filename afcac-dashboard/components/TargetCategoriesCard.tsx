@@ -22,21 +22,25 @@ const CATEGORIES = [
 export default function TargetCategoriesCard() {
   return (
     <div className="kpi-card k-teal" style={{ animationDelay: ".08s" }}>
-      <div className="kpi-icon-wrap" style={{ background: "#e8f2f8" }}>🎯</div>
-      <div className="kpi-label" style={{ marginBottom: 6 }}>Safety Target Categories</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <div className="kpi-icon-wrap" style={{ background: "#e8f2f8", margin: 0 }}>🎯</div>
+        <div className="kpi-label" style={{ margin: 0 }}>Safety Target Categories</div>
+      </div>
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          columnGap: 10,
-          rowGap: 3,
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
           fontSize: 9.5,
-          lineHeight: 1.4,
+          lineHeight: 1.35,
           color: "var(--ink2)",
+          maxHeight: 92,
+          overflowY: "auto",
+          paddingRight: 4,
         }}
       >
         {CATEGORIES.map((c, i) => (
-          <div key={i} style={{ display: "flex", gap: 3 }}>
+          <div key={i} style={{ display: "flex", gap: 4 }}>
             <span style={{ color: "var(--ink3)", fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
             <span>{c}</span>
           </div>
