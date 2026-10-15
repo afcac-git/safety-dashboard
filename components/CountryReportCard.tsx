@@ -70,14 +70,12 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
       // Sheet 3: Country Breakdown (admin / multi-country only)
       if (countries.length > 1) {
         const cHeaders = [
-          t("colCountry"), t("colRegion"), t("colAuthorityEntity"),
-          t("colTargetsTotal"), t("colPctCompleted"), t("colPctInProgress"), t("colPctDelayed"), t("colPctNotStarted"),
-          t("colBudgetUsd"),
+          t("colCountry"), t("colTotalActions"), t("colPctCompleted"), t("colPctInProgress"),
+          t("implementationStatus"), t("notStarted"), t("colResponsible"),
         ];
         const cRows = countries.map(c => [
-          c.country, c.region, c.entity ?? "",
-          c.actions, c.completed, c.inprogress, c.delayed, c.notstarted,
-          c.budget ?? 0,
+          c.country, c.actions, c.completed, c.inprogress,
+          c.completed + c.inprogress, c.notstarted, c.entity ?? "",
         ]);
         const wsCountries = XLSX.utils.aoa_to_sheet([cHeaders, ...cRows]);
         wsCountries["!cols"] = cHeaders.map((h, ci) => ({
@@ -255,11 +253,10 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
         doc.addPage("a4", "landscape");
         addPageHeader(doc, t("reportCountryBreakdownSubtitle"));
         autoTable(doc, {
-          head: [[t("colCountry"), t("colRegion"), t("colAuthorityEntity"), t("colTargets"), t("colPctCompleted"), t("colPctInProgress"), t("colPctDelayed"), t("colPctNotStarted"), t("colBudgetUsd")].map(shape)],
+          head: [[t("colCountry"), t("colTotalActions"), t("colPctCompleted"), t("colPctInProgress"), t("implementationStatus"), t("notStarted"), t("colResponsible")].map(shape)],
           body: countries.map(c => [
-            c.country, c.region, c.entity ?? "",
-            c.actions, `${c.completed}%`, `${c.inprogress}%`, `${c.delayed}%`, `${c.notstarted}%`,
-            (c.budget ?? 0).toLocaleString(),
+            c.country, c.actions, `${c.completed}%`, `${c.inprogress}%`,
+            `${c.completed + c.inprogress}%`, `${c.notstarted}%`, c.entity ?? "",
           ].map((v) => shape(String(v)))),
           startY: 30,
           styles: { fontSize: 7, cellPadding: 2, font, halign },
@@ -267,20 +264,18 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
           alternateRowStyles: { fillColor: C.rowAlt },
           margin: { left: 10, right: 10 },
           columnStyles: {
-            0: { cellWidth: 38 },
-            1: { cellWidth: 28 },
-            2: { cellWidth: 20 },
-            3: { cellWidth: 16, halign: "center" as const },
-            4: { cellWidth: 22, halign: "center" as const },
-            5: { cellWidth: 22, halign: "center" as const },
-            6: { cellWidth: 18, halign: "center" as const },
-            7: { cellWidth: 22, halign: "center" as const },
-            8: { cellWidth: 30, halign: "right"  as const },
+            0: { cellWidth: 45 },
+            1: { cellWidth: 24, halign: "center" as const },
+            2: { cellWidth: 26, halign: "center" as const },
+            3: { cellWidth: 26, halign: "center" as const },
+            4: { cellWidth: 28, halign: "center" as const },
+            5: { cellWidth: 24, halign: "center" as const },
+            6: { cellWidth: 32 },
           },
           didParseCell: (data) => {
             if (data.section !== "body") return;
             const colColors: Record<number, [number,number,number]> = {
-              4: C.complete, 5: C.progress, 6: C.delayed, 7: C.nostart,
+              2: C.complete, 3: C.progress, 5: C.nostart,
             };
             if (colColors[data.column.index]) {
               data.cell.styles.textColor = colColors[data.column.index];
