@@ -1,4 +1,4 @@
-import { getDashboardData, getTopExperts, getAllCountryTargets, findUser, filterDashboardForCountry, filterDashboardForCountries, getLastCountryUpdate } from "@/lib/data";
+import { getDashboardData, getTopExperts, getAllCountryTargets, findUser, filterDashboardForCountry, filterDashboardForCountries, getLastCountryUpdate, computeGlobalLevelPcts } from "@/lib/data";
 import { getServerSession } from "@/lib/auth";
 import { getSessions } from "@/lib/sessions";
 import { cookies } from "next/headers";
@@ -51,6 +51,11 @@ export default async function DashboardPage() {
 
   const { kpis, actions, countries, targets } = filtered ?? rawData;
   const countryTargets = filtered?.countryTargets ?? allCountryTargets;
+  // Average, per country that has actually submitted, the % of its own targets
+  // at each of the 5 score levels — so "Fully Achieved" matches the Executive
+  // Summary's "Average completion rate" instead of the org-wide aggregate
+  // `targets` array (averaged-then-rounded per target) rarely landing on 100%.
+  const levelPcts = computeGlobalLevelPcts(countryTargets);
 
   const [experts, lastCountryUpdate] = await Promise.all([
     getTopExperts(3, userCountry),
@@ -91,7 +96,7 @@ export default async function DashboardPage() {
         {/* Section 2: Status + Action Table */}
         <div className="section-label">{t(locale, "statusOverview")}</div>
         <div className="row-wide">
-          <StatusDonut kpis={kpis} isAdmin={isAdmin} targets={targets} />
+          <StatusDonut kpis={kpis} isAdmin={isAdmin} targets={targets} levelPcts={levelPcts} />
           <ActionTable actions={actions} targets={targets} countryTargets={countryTargets} isAdmin={isAdmin} canExport={isAdmin} />
         </div>
 
@@ -99,7 +104,7 @@ export default async function DashboardPage() {
         <div className="section-label">{t(locale, "geoOverview")}</div>
         <div className="row-map">
           <AfricaMap countries={countries} isAdmin={isAdmin} allCountryTargets={allCountryTargets} />
-          <StatusBar kpis={kpis} isAdmin={isAdmin} canExport={!!session} isCountryProfile={!isAdmin && !!userCountry} targets={targets} />
+          <StatusBar kpis={kpis} isAdmin={isAdmin} canExport={!!session} isCountryProfile={!isAdmin && !!userCountry} targets={targets} levelPcts={levelPcts} />
         </div>
 
         {/* Section 4: Country Breakdown — hidden for country profile */}

@@ -15,23 +15,27 @@ const LEVEL_DEFS: { pct: number; color: string; labels: Record<Locale, string> }
   { pct: 100, color: "#2d9d5e", labels: { en: "Fully Achieved",                   fr: "Pleinement atteint",        pt: "Totalmente Alcançado",          ar: "محقق بالكامل"    } },
 ];
 
-function compute5Levels(targets: TargetRow[], locale: string) {
-  const total = targets.length;
-  if (total === 0) return null;
+// levelPcts: the 5 score-level percentages (0/25/50/75/100), already averaged
+// per-country server-side (see computeGlobalLevelPcts) — not derived from the
+// org-wide aggregate `targets` array, which rarely rounds a target to exactly
+// 100% across many countries and made "Fully Achieved" read ~0%.
+function compute5Levels(levelPcts: number[], total: number, locale: string) {
   const loc = (["en", "fr", "pt", "ar"].includes(locale) ? locale : "en") as Locale;
-  return LEVEL_DEFS.map(def => ({
+  return LEVEL_DEFS.map((def, i) => ({
     name:  def.labels[loc],
-    value: Math.round(targets.filter(r => r.pct === def.pct).length / total * 100),
+    value: levelPcts[i] ?? 0,
     color: def.color,
-    count: targets.filter(r => r.pct === def.pct).length,
+    count: Math.round(((levelPcts[i] ?? 0) / 100) * total),
     total,
   }));
 }
 
-export default function StatusDonut({ kpis, isAdmin, targets }: { kpis: KpiData; isAdmin?: boolean; targets?: TargetRow[] }) {
+export default function StatusDonut({ kpis, isAdmin, targets, levelPcts }: { kpis: KpiData; isAdmin?: boolean; targets?: TargetRow[]; levelPcts?: number[] | null }) {
   const { t, locale } = useLanguage();
 
-  const levels = targets && targets.length > 0 ? compute5Levels(targets, locale) : null;
+  const levels = targets && targets.length > 0 && levelPcts
+    ? compute5Levels(levelPcts, targets.length, locale)
+    : null;
 
   const data = levels ?? [
     { name: t("completed"),  value: kpis.pctCompleted,  color: "#2d9d5e", count: 0, total: kpis.totalActions },

@@ -34,31 +34,35 @@ const LEVEL_DEFS: { pct: number; color: string; labels: Record<Locale, string>; 
   },
 ];
 
-function compute5Segs(targets: TargetRow[], locale: string) {
-  const total = targets.length;
-  if (total === 0) return null;
+// levelPcts: the 5 score-level percentages (0/25/50/75/100), already averaged
+// per-country server-side (see computeGlobalLevelPcts) — not derived from the
+// org-wide aggregate `targets` array, which rarely rounds a target to exactly
+// 100% across many countries and made "Fully Achieved" read ~0%.
+function compute5Segs(levelPcts: number[], total: number, locale: string) {
   const loc = (["en", "fr", "pt", "ar"].includes(locale) ? locale : "en") as Locale;
-  return LEVEL_DEFS.map(def => {
-    const count = targets.filter(r => r.pct === def.pct).length;
+  return LEVEL_DEFS.map((def, i) => {
+    const pct = levelPcts[i] ?? 0;
     return {
-      pct:   Math.round(count / total * 100),
+      pct,
       color: def.color,
       label: def.labels[loc],
       desc:  def.descs[loc],
       hex:   def.color,
-      count,
+      count: Math.round((pct / 100) * total),
       total,
     };
   });
 }
 
-export default function StatusBar({ kpis, isAdmin, canExport, isCountryProfile, targets }: {
-  kpis: KpiData; isAdmin?: boolean; canExport?: boolean; isCountryProfile?: boolean; targets?: TargetRow[];
+export default function StatusBar({ kpis, isAdmin, canExport, isCountryProfile, targets, levelPcts }: {
+  kpis: KpiData; isAdmin?: boolean; canExport?: boolean; isCountryProfile?: boolean; targets?: TargetRow[]; levelPcts?: number[] | null;
 }) {
   const { t, locale } = useLanguage();
   const titleKey = isCountryProfile ? "stateStatusDistribution" : "statusDistribution";
 
-  const levels = targets && targets.length > 0 ? compute5Segs(targets, locale) : null;
+  const levels = targets && targets.length > 0 && levelPcts
+    ? compute5Segs(levelPcts, targets.length, locale)
+    : null;
 
   const segs = levels ?? [
     { pct: kpis.pctCompleted,  color: "#2d9d5e", label: t("completed"),  hex: "#2d9d5e", desc: t("completedDesc"),  count: 0, total: kpis.totalActions },

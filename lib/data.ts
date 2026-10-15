@@ -421,6 +421,31 @@ function computeCountryPcts(targets: TargetRow[]): Pick<CountryRow, "completed" 
   return { completed, inprogress, delayed: 0, notstarted };
 }
 
+// Pure: for one country, the % of its own targets at each of the 5 score
+// levels (0/25/50/75/100), always summing to 100 for that country.
+function computeCountryLevelPcts(targets: TargetRow[]): number[] {
+  const total = targets.length;
+  if (total === 0) return [0, 0, 0, 0, 0];
+  const counts = [0, 25, 50, 75, 100].map((lvl) => targets.filter((t) => t.pct === lvl).length);
+  return pctLargestRemainder(counts, total);
+}
+
+// Pure: average each of the 5 score-level percentages across every country
+// that has actually submitted targets (or just the one country, when
+// countryTargets holds a single entry — e.g. a focal point's own view).
+// This is the per-country-average method that also drives "Average
+// completion rate" (computeGlobalPcts) — unlike bucketing the org-wide
+// aggregate `targets` array (averaged-then-rounded per target across every
+// submitting country), which rarely lands exactly on 100% and made "Fully
+// Achieved" read ~0% even when individual countries had real completions.
+export function computeGlobalLevelPcts(countryTargets: Record<string, TargetRow[]>): number[] | null {
+  const entries = Object.values(countryTargets).filter((ts) => ts.length > 0);
+  if (entries.length === 0) return null;
+  const perCountry = entries.map(computeCountryLevelPcts);
+  const n = perCountry.length;
+  return [0, 1, 2, 3, 4].map((i) => Math.round(perCountry.reduce((s, p) => s + p[i], 0) / n));
+}
+
 async function syncActionRow(country: string, targets: TargetRow[]): Promise<void> {
   if (targets.length === 0) return;
   const status = computeActionStatus(targets);
