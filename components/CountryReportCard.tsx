@@ -102,6 +102,13 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
       }
 
       XLSX.writeFile(wb, `${reportName}.xlsx`);
+    } catch (err) {
+      console.error("[Excel export]", err);
+      alert(
+        err instanceof Error && /chunk/i.test(err.message)
+          ? "The page was updated since you loaded it — please refresh and try again."
+          : `Excel export failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     } finally {
       setLoadingXls(false);
     }
@@ -194,7 +201,7 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
           [t("notStarted"),        `${kpis.pctNotStarted}%`],
           [t("totalCountries"),    String(kpis.totalCountries)],
           [t("totalActions"),      String(kpis.totalActions)],
-          [t("totalBudget"), kpis.totalBudget.toLocaleString()],
+          [t("totalBudget"), (kpis.totalBudget ?? 0).toLocaleString()],
           [t("reportPeriodLabel"),      kpis.reportPeriod],
           [t("lastUpdated"),       kpis.lastUpdated],
         ].map(row => row.map(shape)),
@@ -319,6 +326,13 @@ export default function CountryReportCard({ kpis, countries, targets, actions = 
       }
 
       doc.save(`${reportName}.pdf`);
+    } catch (err) {
+      console.error("[PDF export]", err);
+      alert(
+        err instanceof Error && /chunk/i.test(err.message)
+          ? "The page was updated since you loaded it — please refresh and try again."
+          : `PDF export failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     } finally {
       setLoadingPdf(false);
     }
