@@ -254,12 +254,20 @@ export async function getDashboardData(): Promise<DashboardData> {
       : c;
   });
 
-  // The Executive Summary's % Completed / % In Progress cards are the share of
-  // countries in each Action Plan status — not an average of how deep into the
-  // 39 targets each country got. Recomputed from reconciledActions on every
-  // read so they track real submissions (see computeGlobalPctsFromActions).
-  const globalPcts = computeGlobalPctsFromActions(reconciledActions);
-  const reconciledKpis = globalPcts ? { ...kpis, ...globalPcts } : kpis;
+  // The Executive Summary shows two distinct, complementary metrics, each
+  // recomputed on every read so neither can go stale:
+  // - "Average completion rate" (pctCompleted/pctDelayed/pctNotStarted): how
+  //   deep into the 39 targets each active country got, averaged across them.
+  // - "States with implementation progress" (pctInProgress): the share of
+  //   countries whose Action Plan status is In Progress — any country with a
+  //   single target touched counts, regardless of how far along it is.
+  const depthPcts = computeGlobalPcts(reconciledCountries);
+  const countPcts = computeGlobalPctsFromActions(reconciledActions);
+  const reconciledKpis = {
+    ...kpis,
+    ...(depthPcts ?? {}),
+    ...(countPcts ? { pctInProgress: countPcts.pctInProgress } : {}),
+  };
 
   return { kpis: reconciledKpis, actions: reconciledActions, countries: reconciledCountries, targets };
 }

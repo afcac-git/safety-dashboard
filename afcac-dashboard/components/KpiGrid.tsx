@@ -44,13 +44,13 @@ export default function KpiGrid({ kpis, experts, locale = "en", lastCountryUpdat
       <KpiCard
         colorClass="k-green" icon="✅" iconBg="#d4f0e0"
         value={`${kpis.pctCompleted}%`} valueColor="#2d9d5e"
-        label={t(locale, "pctCompleted")}
+        label={t(locale, "avgCompletionRate")}
         trend="" trendClass="trend-flat" delay=".15s"
       />
       <KpiCard
         colorClass="k-amber" icon="⏳" iconBg="#fff0e0"
         value={`${kpis.pctInProgress}%`} valueColor="#f0a500"
-        label={t(locale, "pctInProgress")}
+        label={t(locale, "statesWithProgress")}
         trend="" trendClass="trend-flat" delay=".2s"
       />
       {isCountryProfile && (
