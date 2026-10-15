@@ -3,6 +3,7 @@ import type { KpiData, ExpertStat, UpdateLog } from "@/lib/types";
 import { t } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import TopExpertsCard from "./TopExpertsCard";
+import TargetCategoriesCard from "./TargetCategoriesCard";
 
 interface KpiCardProps {
   icon: string;
@@ -41,6 +42,7 @@ export default function KpiGrid({ kpis, experts, locale = "en", lastCountryUpdat
         value={String(kpis.totalCountries)} label={t(locale, "totalCountries")}
         trend="" trendClass="trend-flat" delay=".05s"
       />
+      <TargetCategoriesCard />
       <KpiCard
         colorClass="k-green" icon="✅" iconBg="#d4f0e0"
         value={`${kpis.pctCompleted}%`} valueColor="#2d9d5e"
